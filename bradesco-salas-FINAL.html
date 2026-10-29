@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reserva de Salas | Academia de Investimento Bradesco</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<style>
+  :root {
+    --bradesco-red: #CC092F;
+    --bradesco-red-dark: #8C0620;
+    --gray-bg: #F7F7F8;
+    --text: #262626;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--gray-bg); color: var(--text); }
+  .setup-banner {
+    background: #FEF3C7; color: #92400E; border-bottom: 1px solid #FCD34D;
+    font-size: 13px; padding: 10px 16px; text-align: center;
+  }
+  header.appbar {
+    background: var(--bradesco-red); color: #fff; padding: 12px 20px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand .mark { background: #fff; color: var(--bradesco-red); font-weight: 900; border-radius: 6px; padding: 4px 10px; font-size: 18px; line-height: 1; }
+  .brand .titles p { margin: 0; line-height: 1.2; }
+  .brand .titles .t1 { font-weight: bold; font-size: 14px; }
+  .brand .titles .t2 { font-size: 11px; opacity: .85; }
+  nav.tabs { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  nav.tabs button { background: rgba(255,255,255,.08); color: #fff; border: none; padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+  nav.tabs button.active { background: rgba(255,255,255,.25); font-weight: bold; }
+  nav.tabs .email { font-size: 11px; opacity: .85; margin: 0 6px; }
+  main { max-width: 960px; margin: 0 auto; padding: 24px 16px 60px; }
+  .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; padding: 18px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+  .grid { display: grid; gap: 16px; }
+  .grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 720px) { .grid.cols-2, .grid.cols-3 { grid-template-columns: 1fr; } }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .subtitle { color: #6b6b6b; font-size: 13px; margin: 0 0 20px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #444; }
+  input, select { width: 100%; border: 1px solid #ccc; border-radius: 6px; padding: 9px 10px; font-size: 14px; margin-bottom: 14px; }
+  input:focus, select:focus { outline: 2px solid var(--bradesco-red); border-color: transparent; }
+  button.btn-primary { background: var(--bradesco-red); color: #fff; border: none; padding: 10px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; width: 100%; }
+  button.btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+  button.btn-primary:hover:not(:disabled) { background: var(--bradesco-red-dark); }
+  button.btn-secondary { background: #fff; color: var(--bradesco-red); border: 1px solid var(--bradesco-red); padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
+  .error-box { background: #FEE2E2; border: 1px solid #FCA5A5; color: var(--bradesco-red); padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 14px; }
+  .success-box { background: #DCFCE7; border: 1px solid #86EFAC; color: #15803D; padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 14px; }
+  .amber-box { background: #FEF3C7; border: 1px solid #FCD34D; color: #92400E; padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 14px; }
+  .center-page { min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .auth-card { background: #fff; border-radius: 12px; padding: 32px; width: 100%; max-width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,.15); }
+  .auth-card .logo { text-align: center; margin-bottom: 18px; }
+  .auth-card .logo .mark { background: var(--bradesco-red); color: #fff; font-weight: 900; border-radius: 8px; padding: 8px 14px; font-size: 22px; display: inline-block; margin-bottom: 8px; }
+  .auth-card h2 { text-align: center; margin: 0 0 4px; font-size: 18px; }
+  .auth-card .sub { text-align: center; color: #777; font-size: 12px; margin-bottom: 18px; }
+  .link { color: var(--bradesco-red); text-decoration: none; font-weight: 600; cursor: pointer; }
+  .room-card { cursor: pointer; transition: box-shadow .15s; }
+  .room-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+  .room-card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; text-align: right; }
+  .badge.free { background: #DCFCE7; color: #15803D; }
+  .badge.busy { background: #FEE2E2; color: var(--bradesco-red); }
+  .badge.admin { background: #FDE68A; color: #92400E; }
+  .badge.reserve { background: #E0E7FF; color: #3730A3; }
+  .badge.subreserve { background: #EDE9FE; color: #6D28D9; }
+  .badge.blocked { background: #374151; color: #fff; }
+  .room-card .who-line { color: var(--bradesco-red); font-size: 11px; font-weight: 600; margin: 4px 0 0; line-height: 1.4; }
+  .room-card .cat { font-size: 11px; color: #888; margin: 4px 0 10px; }
+  .room-card .cta { color: var(--bradesco-red); font-size: 13px; font-weight: 600; }
+  .room-card.dark-red { border-left: 4px solid var(--bradesco-red-dark); }
+  .week-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .week-nav label { margin: 0; white-space: nowrap; }
+  .week-nav select { width: auto; margin-bottom: 0; }
+  ul.plain { list-style: none; margin: 0; padding: 0; }
+  .slot-busy { background: #FEE2E2; border: 1px solid #FCA5A5; color: var(--bradesco-red); border-radius: 6px; padding: 6px 10px; margin-bottom: 6px; display: flex; justify-content: space-between; font-size: 13px; }
+  .slot-free { background: #DCFCE7; border: 1px solid #86EFAC; color: #15803D; border-radius: 6px; padding: 6px 10px; margin: 0 6px 6px 0; display: inline-block; font-size: 13px; }
+  .metric { text-align: center; }
+  .metric .val { font-size: 26px; font-weight: 800; color: var(--bradesco-red); }
+  .metric .lbl { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: .03em; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #eee; }
+  th { color: #777; font-size: 11px; text-transform: uppercase; }
+  .bar-row { margin-bottom: 10px; }
+  .bar-row .bar-labels { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 3px; color: #555; }
+  .bar-bg { background: #f0f0f0; border-radius: 999px; height: 8px; overflow: hidden; }
+  .bar-fill { background: var(--bradesco-red); height: 100%; border-radius: 999px; }
+  .reserva-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+  .reserva-row:last-child { border-bottom: none; }
+  .small-muted { font-size: 12px; color: #888; }
+  .loading { text-align: center; color: #888; padding: 40px 0; }
+</style>
+</head>
+<body>
+
+<div id="setup-banner"></div>
+<div id="app"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ============================================================================
+  // CONFIGURAÇÃO — URL e chave do projeto Supabase.
+  // ============================================================================
+  var SUPABASE_URL = "https://rhprkcaxylcolvspppye.supabase.co";
+  var SUPABASE_ANON_KEY = "sb_publishable_HtICvGfmCOV4L2ntZ3wX3g_7dI7N1_-";
+
+  var CONFIGURED = SUPABASE_URL.indexOf("COLE_AQUI") === -1 && SUPABASE_ANON_KEY.indexOf("COLE_AQUI") === -1;
+
+  if (!CONFIGURED) {
+    document.getElementById("setup-banner").innerHTML =
+      '<div class="setup-banner">⚠️ Este arquivo ainda não foi configurado. Abra o HTML em um editor de texto, ' +
+      "procure por SUPABASE_URL e SUPABASE_ANON_KEY perto do topo do &lt;script&gt;, e cole os valores do seu " +
+      "projeto Supabase. Depois disso salve e abra de novo.</div>";
+    document.getElementById("app").innerHTML =
+      '<div class="loading">Configuração pendente — veja o aviso acima.</div>';
+    return;
+  }
+
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  var ALLOWED_DOMAIN = "bradesco.com.br";
+  var OPENING_TIME = "08:00";
+  var CLOSING_TIME = "18:00";
+
+  // ---------- Regras de horário (mesma lógica usada no banco, para feedback imediato) ----------
+  function timeToMinutes(t) { var p = t.split(":").map(Number); return p[0] * 60 + p[1]; }
+  function minutesToTime(m) {
+    var h = String(Math.floor(m / 60)).padStart(2, "0");
+    var mm = String(m % 60).padStart(2, "0");
+    return h + ":" + mm;
+  }
+  function validateBusinessHours(start, end) {
+    var s = timeToMinutes(start), e = timeToMinutes(end);
+    var open = timeToMinutes(OPENING_TIME), close = timeToMinutes(CLOSING_TIME);
+    if (s >= e) return "O horário de início deve ser antes do horário de término.";
+    if (s < open) return "As salas só abrem às " + OPENING_TIME + ".";
+    if (e > close) return "O horário máximo de término é " + CLOSING_TIME + ".";
+    return null;
+  }
+  function findConflict(start, end, existing) {
+    var ns = timeToMinutes(start), ne = timeToMinutes(end);
+    for (var i = 0; i < existing.length; i++) {
+      var b = existing[i];
+      var es = timeToMinutes(b.start_time), ee = timeToMinutes(b.end_time);
+      if (ns < ee && es < ne) return b;
+    }
+    return null;
+  }
+  function computeFreeSlots(existing) {
+    var open = timeToMinutes(OPENING_TIME), close = timeToMinutes(CLOSING_TIME);
+    var sorted = existing.map(function (b) {
+      return { start: timeToMinutes(b.start_time), end: timeToMinutes(b.end_time) };
+    }).sort(function (a, b) { return a.start - b.start; });
+    var free = [], cursor = open;
+    sorted.forEach(function (s) {
+      if (s.start > cursor) free.push({ start: minutesToTime(cursor), end: minutesToTime(s.start) });
+      cursor = Math.max(cursor, s.end);
+    });
+    if (cursor < close) free.push({ start: minutesToTime(cursor), end: minutesToTime(close) });
+    return free;
+  }
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function addDaysISO(iso, days) {
+    var d = new Date(iso + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function isAllowedEmail(email) { return email.toLowerCase().endsWith("@" + ALLOWED_DOMAIN); }
+
+  // ---------- Helpers de calendário (tela "Reservar sala por calendário") ----------
+  function daysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
+  function isoFromParts(y, m, d) { return y + "-" + String(m + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0"); }
+  function monthLabel(yearMonth) {
+    var p = yearMonth.split("-");
+    var names = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    return names[Number(p[1]) - 1] + " de " + p[0];
+  }
+  function addMonths(yearMonth, delta) {
+    var p = yearMonth.split("-").map(Number);
+    var d = new Date(p[0], p[1] - 1 + delta, 1);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  }
+
+  // ---------- Regras de sala especiais ----------
+  var ADMIN_ONLY_ROOM_IDS = ["room-8", "room-9", "room-10", "room-14"]; // Treinamento 1, 2, 3 e Sala 7 - Liderança
+  var OVERFLOW_ROOM_ID = "room-1"; // Sala de Reunião 1: sala reserva
+  var OVERFLOW_REQUIRES = ["room-2", "room-3", "room-5", "room-6"];
+  var SUB_OVERFLOW_ROOM_ID = "room-15"; // Sala 4 - Liderança: sub-reserva (segunda camada, atrás da Sala 1)
+  var SUB_OVERFLOW_REQUIRES = ["room-1", "room-2", "room-3", "room-5", "room-6"];
+
+  function isDarkRedRoom(name) { return name.indexOf("Outback") === 0; }
+  function isAdminUser() { return !!(state.profile && state.profile.role === "SUPER_ADMIN"); }
+
+  // Checa se TODAS as salas de requiredRoomIds estão ocupadas no horário pedido, naquele dia.
+  // Usado tanto pela Sala 1 (sala reserva) quanto pela Sala 4 (sub-reserva).
+  async function areAllRoomsOccupied(date, startTime, endTime, requiredRoomIds) {
+    for (var i = 0; i < requiredRoomIds.length; i++) {
+      var otherBookings = await fetchBookingsForRoomDate(requiredRoomIds[i], date);
+      if (!findConflict(startTime, endTime, otherBookings)) return false;
+    }
+    return true;
+  }
+
+  // Regra da Sala 1: para usuários comuns, só libera quando 2, 3, 5 e 6 estiverem todas ocupadas
+  // no horário pedido. Administradores podem reservar a Sala 1 a qualquer momento, sem essa condição.
+  async function isOverflowAllowed(date, startTime, endTime) {
+    if (isAdminUser()) return true;
+    return await areAllRoomsOccupied(date, startTime, endTime, OVERFLOW_REQUIRES);
+  }
+
+  // Regra da Sala 4 (sub-reserva): para usuários comuns, só libera quando a Sala 1 e as salas
+  // 2, 3, 5 e 6 estiverem TODAS ocupadas no horário pedido — uma camada atrás da Sala 1.
+  // Administradores podem reservar a Sala 4 a qualquer momento, sem essa condição.
+  async function isSubOverflowAllowed(date, startTime, endTime) {
+    if (isAdminUser()) return true;
+    return await areAllRoomsOccupied(date, startTime, endTime, SUB_OVERFLOW_REQUIRES);
+  }
+
+  // ---------- Semana (segunda a sexta) e período do dia, para o painel admin ----------
+  var WEEKDAY_NAMES = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
+  function weekdayName(iso) {
+    var d = new Date(iso + "T00:00:00");
+    return WEEKDAY_NAMES[d.getDay()];
+  }
+  function formatDateBR(iso) {
+    var p = iso.split("-");
+    return p[2] + "/" + p[1];
+  }
+  function getMondayISO(iso) {
+    var d = new Date(iso + "T00:00:00");
+    var day = d.getDay();
+    var diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function classifyPeriod(startTime) {
+    var h = Number(startTime.split(":")[0]);
+    return h < 12 ? "Manhã" : "Tarde";
+  }
+
+  // ---------- Estado ----------
+  var state = {
+    screen: "login",
+    loading: true,
+    session: null,
+    profile: null,
+    rooms: [],
+    selectedRoomId: null,
+    selectedDate: todayISO(),
+    roomsDate: todayISO(),
+    calendarMonth: null,
+    formError: null,
+    formSuccess: null,
+    conflictInfo: null,
+    roomBookings: [],
+    roomBlock: null,
+    myBookings: [],
+    adminData: null,
+    roomBlocks: [],
+    formWarning: null,
+    adminSelectedWeek: "",
+    adminSelectedDay: "",
+    adminCompareDayA: "",
+    adminCompareDayB: ""
+  };
+
+  var app = document.getElementById("app");
+
+  function render() {
+    if (state.loading) { app.innerHTML = '<div class="loading">Carregando…</div>'; return; }
+    if (!state.session) { renderAuth(); return; }
+    renderApp();
+  }
+
+  async function go(screen, extra) {
+    state.screen = screen;
+    state.formError = null;
+    state.formSuccess = null;
+    state.formWarning = null;
+    state.conflictInfo = null;
+    if (extra) Object.assign(state, extra);
+    render();
+    if (screen === "salas") await loadRoomsScreen();
+    if (screen === "sala-detalhe") await loadRoomDetalhe();
+    if (screen === "minhas-reservas") await loadMinhasReservas();
+    if (screen === "admin") await loadAdmin();
+  }
+
+  // ---------- Autenticação ----------
+  async function loadProfile() {
+    var userResp = await sb.auth.getUser();
+    var user = userResp.data && userResp.data.user;
+    if (!user) { state.profile = null; return; }
+    var { data } = await sb.from("profiles").select("*").eq("id", user.id).single();
+    state.profile = data || null;
+  }
+
+  async function doRegister(name, email, confirmed_password, confirmPassword) {
+    email = email.trim().toLowerCase();
+    if (!name || !email || !confirmed_password) return "Preencha todos os campos.";
+    if (!isAllowedEmail(email)) return "Cadastro permitido apenas para emails @" + ALLOWED_DOMAIN + ".";
+    if (confirmed_password.length < 8) return "A senha deve ter pelo menos 8 caracteres.";
+    if (confirmed_password !== confirmPassword) return "As senhas não coincidem.";
+
+    var { error } = await sb.auth.signUp({
+      email: email,
+      password: confirmed_password,
+      options: { data: { name: name } }
+    });
+
+    if (error) {
+      var msg = error.message || "";
+      if (error.code === "over_email_send_rate_limit" || /rate limit/i.test(msg)) {
+        return "O Supabase bloqueou o envio por excesso de tentativas de cadastro em pouco tempo (limite do provedor de email padrão do projeto, não é um erro do site). Aguarde alguns minutos e tente de novo. Se continuar acontecendo com frequência, é preciso configurar um SMTP próprio no Supabase (Authentication → Emails → SMTP Settings) para remover esse limite.";
+      }
+      return msg;
+    }
+    return null;
+  }
+
+  async function doLogin(email, password) {
+    email = email.trim().toLowerCase();
+    if (!isAllowedEmail(email)) return "Apenas emails @" + ALLOWED_DOMAIN + " podem acessar.";
+    var { data, error } = await sb.auth.signInWithPassword({ email: email, password: password });
+    if (error) {
+      if (/confirm/i.test(error.message)) return "Confirme seu email antes de entrar — veja a caixa de entrada de " + email + ".";
+      return "Email ou senha incorretos.";
+    }
+    state.session = data.session;
+    await loadProfile();
+    return null;
+  }
+
+  async function doLogout() {
+    await sb.auth.signOut();
+    state.session = null;
+    state.profile = null;
+    go("login");
+  }
+
+  // ---------- Dados ----------
+  async function fetchRooms() {
+    var { data } = await sb.from("rooms").select("*").order("sort_order");
+    return data || [];
+  }
+
+  async function fetchBookingsForRoomDate(roomId, date) {
+    var { data } = await sb
+      .from("bookings")
+      .select("id, start_time, end_time, user_id, guest_name, guest_email, participants_count, profiles(name)")
+      .eq("room_id", roomId).eq("date", date).eq("status", "CONFIRMADA")
+      .order("start_time");
+    return data || [];
+  }
+
+  // ---------- Interdição de sala (bloquear uma sala de uma data até outra) ----------
+  // Retorna a interdição (room_blocks) que cobre essa sala nessa data, ou null se não tiver.
+  async function fetchActiveBlockForRoomDate(roomId, date) {
+    var { data } = await sb
+      .from("room_blocks")
+      .select("*")
+      .eq("room_id", roomId)
+      .lte("start_date", date)
+      .gte("end_date", date);
+    return (data && data[0]) || null;
+  }
+
+  // Todas as interdições cadastradas (passadas e futuras), com nome da sala, pro painel admin.
+  async function fetchAllRoomBlocks() {
+    var { data } = await sb
+      .from("room_blocks")
+      .select("id, room_id, start_date, end_date, reason, created_at, rooms(name)")
+      .order("start_date", { ascending: false });
+    return data || [];
+  }
+
+  function blockLabel(block) {
+    var periodo = block.start_date === block.end_date
+      ? formatDateBR(block.start_date)
+      : formatDateBR(block.start_date) + " até " + formatDateBR(block.end_date);
+    return "Interditada de " + periodo + (block.reason ? " — " + block.reason : "");
+  }
+
+  // Pra quem a sala foi reservada, pra mostrar no card da grade de salas. Se a reserva foi
+  // feita pra outra pessoa (guest_name preenchido), mostra o nome do convidado; senão, é uso
+  // próprio de quem reservou. Segue o mesmo critério do relatório Excel ("Usado por").
+  function reservedByLabel(b) {
+    if (b.guest_name && b.guest_name.trim()) return b.guest_name.trim();
+    return ((b.profiles && b.profiles.name) ? b.profiles.name : "?") + " (uso próprio)";
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  async function loadRoomsScreen() {
+    state.rooms = await fetchRooms();
+    var viewDate = state.roomsDate || todayISO();
+    var isToday = viewDate === todayISO();
+    var now = new Date();
+    var nowMin = now.getHours() * 60 + now.getMinutes();
+    var withStatus = [];
+    for (var i = 0; i < state.rooms.length; i++) {
+      var r = state.rooms[i];
+      var block = await fetchActiveBlockForRoomDate(r.id, viewDate);
+      if (block) {
+        // Sala interditada nesse dia: não importa se tem reserva ou não, ninguém pode
+        // reservar — o selo mostra isso em vez do status normal de livre/ocupada.
+        withStatus.push(Object.assign({}, r, { status: { free: false, blocked: true, label: "Interditada", who: [blockLabel(block)] } }));
+        continue;
+      }
+      var dayBookings = await fetchBookingsForRoomDate(r.id, viewDate);
+      var status;
+      if (isToday) {
+        // O selo (Livre agora / Ocupada até) reflete só o instante atual, igual antes.
+        // Mas a lista de quem reservou mostra TODAS as reservas de hoje, não só a que
+        // está rolando agora — senão uma reserva feita pra mais tarde no dia ficava
+        // invisível no card até a hora dela chegar.
+        var currentBooking = null;
+        for (var j = 0; j < dayBookings.length; j++) {
+          var b = dayBookings[j];
+          if (nowMin >= timeToMinutes(b.start_time) && nowMin < timeToMinutes(b.end_time)) {
+            currentBooking = b;
+            break;
+          }
+        }
+        status = currentBooking
+          ? { free: false, label: "Ocupada até " + currentBooking.end_time }
+          : { free: true, label: "Livre agora" };
+        if (dayBookings.length > 0) {
+          status.who = dayBookings.map(function (b) { return b.start_time + "–" + b.end_time + ": " + reservedByLabel(b); });
+        }
+      } else {
+        // Para outro dia (escolhido pelo calendário), mostra os horários já ocupados naquele dia
+        // (não só a quantidade), pra dar pra ver de cara se dá pra encaixar sem abrir a sala.
+        status = dayBookings.length === 0
+          ? { free: true, label: "Livre o dia todo" }
+          : {
+              free: false,
+              label: dayBookings.map(function (b) { return b.start_time + "–" + b.end_time; }).join(", "),
+              who: dayBookings.map(function (b) { return b.start_time + "–" + b.end_time + ": " + reservedByLabel(b); })
+            };
+      }
+      withStatus.push(Object.assign({}, r, { status: status }));
+    }
+    state.rooms = withStatus;
+    render();
+  }
+
+  async function loadRoomDetalhe() {
+    state.roomBookings = await fetchBookingsForRoomDate(state.selectedRoomId, state.selectedDate);
+    state.roomBlock = await fetchActiveBlockForRoomDate(state.selectedRoomId, state.selectedDate);
+    render();
+  }
+
+  async function tryCreateBooking(roomId, roomName, date, startTime, endTime, guestName, guestEmail, participantsCount, roomCapacity) {
+    var hoursErr = validateBusinessHours(startTime, endTime);
+    if (hoursErr) return { error: hoursErr };
+
+    // Interdição vale pra todo mundo, sem exceção de admin — checado aqui de novo (além do
+    // botão já vir desabilitado na tela) porque é a função que efetivamente grava no banco.
+    var activeBlock = await fetchActiveBlockForRoomDate(roomId, date);
+    if (activeBlock) {
+      return { error: "Sala interditada nesse período (" + blockLabel(activeBlock) + ")." };
+    }
+
+    var participantsValue = null;
+    if (participantsCount !== undefined && participantsCount !== null && String(participantsCount).trim() !== "") {
+      var parsedParticipants = parseInt(participantsCount, 10);
+      if (isNaN(parsedParticipants) || parsedParticipants <= 0) {
+        return { error: "Número de participantes precisa ser um número inteiro maior que zero." };
+      }
+      if (roomCapacity && parsedParticipants > roomCapacity) {
+        return { error: "Número de participantes (" + parsedParticipants + ") passa da capacidade máxima da sala (" + roomCapacity + " pessoas)." };
+      }
+      participantsValue = parsedParticipants;
+    }
+
+    if (ADMIN_ONLY_ROOM_IDS.indexOf(roomId) !== -1 && !isAdminUser()) {
+      return { error: "Essa sala é restrita a administradores." };
+    }
+
+    if (roomId === OVERFLOW_ROOM_ID) {
+      var allowed = await isOverflowAllowed(date, startTime, endTime);
+      if (!allowed) {
+        return { error: "Sala 1 é sala reserva: só fica disponível quando as salas 2, 3, 5 e 6 estiverem todas ocupadas nesse horário." };
+      }
+    }
+
+    if (roomId === SUB_OVERFLOW_ROOM_ID) {
+      var subAllowed = await isSubOverflowAllowed(date, startTime, endTime);
+      if (!subAllowed) {
+        return { error: "Sala 4 é sub-reserva: só fica disponível quando a Sala 1 e as salas 2, 3, 5 e 6 estiverem todas ocupadas nesse horário." };
+      }
+    }
+
+    var sameDay = await fetchBookingsForRoomDate(roomId, date);
+    var conflict = findConflict(startTime, endTime, sameDay);
+
+    if (conflict) {
+      return await buildConflictResponse(conflict, roomId, date, startTime, endTime, sameDay);
+    }
+
+    var userResp = await sb.auth.getUser();
+    var userId = userResp.data.user.id;
+
+    var { error } = await sb.from("bookings").insert({
+      room_id: roomId, user_id: userId, date: date, start_time: startTime, end_time: endTime,
+      guest_name: (guestName && guestName.trim()) ? guestName.trim() : null,
+      guest_email: (guestEmail && guestEmail.trim()) ? guestEmail.trim().toLowerCase() : null,
+      participants_count: participantsValue
+    });
+
+    if (error) {
+      // 23P01 = violação da trava de sobreposição no banco (outra pessoa reservou no mesmo instante)
+      if (error.code === "23P01") {
+        var freshSameDay = await fetchBookingsForRoomDate(roomId, date);
+        var freshConflict = findConflict(startTime, endTime, freshSameDay) || freshSameDay[0];
+        return await buildConflictResponse(
+          freshConflict,
+          roomId, date, startTime, endTime, freshSameDay,
+          "Esse horário acabou de ser reservado por outra pessoa."
+        );
+      }
+      return { error: "Não foi possível reservar: " + error.message };
+    }
+
+    return { ok: true };
+  }
+
+  async function buildConflictResponse(conflict, roomId, date, startTime, endTime, sameDay, prefix) {
+    var freeSlotsToday = computeFreeSlots(sameDay);
+    var durMin = timeToMinutes(endTime) - timeToMinutes(startTime);
+    var alternativeDays = [];
+    var cursor = date;
+    for (var i = 1; i <= 7 && alternativeDays.length < 3; i++) {
+      cursor = addDaysISO(cursor, 1);
+      var dayBookings = await fetchBookingsForRoomDate(roomId, cursor);
+      var slots = computeFreeSlots(dayBookings).filter(function (s) {
+        return timeToMinutes(s.end) - timeToMinutes(s.start) >= durMin;
+      });
+      if (slots.length > 0) alternativeDays.push({ date: cursor, freeSlots: slots });
+    }
+    var msg = (prefix ? prefix + " " : "") +
+      "Sala já reservada de " + conflict.start_time + " até " + conflict.end_time + " nesse dia.";
+    return { error: msg, freeSlotsToday: freeSlotsToday, alternativeDays: alternativeDays };
+  }
+
+  async function loadMinhasReservas() {
+    var userResp = await sb.auth.getUser();
+    var { data } = await sb.from("bookings")
+      .select("id, date, start_time, end_time, guest_name, guest_email, rooms(name)")
+      .eq("user_id", userResp.data.user.id).eq("status", "CONFIRMADA")
+      .order("date").order("start_time");
+    state.myBookings = data || [];
+    render();
+  }
+
+  async function cancelBooking(id) {
+    await sb.from("bookings").update({ status: "CANCELADA" }).eq("id", id);
+    await loadMinhasReservas();
+  }
+
+  // Cancelamento pelo Super Admin: a policy do banco (bookings_update_own_or_admin) já permite
+  // que um admin cancele a reserva de qualquer pessoa, não só as próprias.
+  async function adminCancelBooking(id) {
+    await sb.from("bookings").update({ status: "CANCELADA" }).eq("id", id);
+    await loadAdmin();
+  }
+
+  async function loadAdmin() {
+    if (!state.profile || state.profile.role !== "SUPER_ADMIN") { go("salas"); return; }
+    if (!state.rooms || state.rooms.length === 0) state.rooms = await fetchRooms();
+    var { data } = await sb.from("bookings")
+      .select("id, date, start_time, end_time, created_at, guest_name, guest_email, participants_count, rooms(name), profiles(name, email)")
+      .eq("status", "CONFIRMADA");
+    state.adminData = data || [];
+    state.roomBlocks = await fetchAllRoomBlocks();
+    render();
+  }
+
+  // Cria uma interdição (sala indisponível de uma data até outra). Antes de criar, avisa se
+  // já existem reservas confirmadas nesse período — o sistema NÃO cancela elas sozinho, é
+  // informativo pra quem está interditando decidir se precisa avisar/cancelar na mão.
+  async function createRoomBlock(roomId, startDate, endDate, reason) {
+    if (!roomId) return { error: "Escolha uma sala." };
+    if (!startDate || !endDate) return { error: "Preencha a data de início e a data de fim." };
+    if (endDate < startDate) return { error: "A data de fim não pode ser antes da data de início." };
+
+    var userResp = await sb.auth.getUser();
+    var userId = userResp.data.user.id;
+
+    var { error } = await sb.from("room_blocks").insert({
+      room_id: roomId, start_date: startDate, end_date: endDate,
+      reason: (reason && reason.trim()) ? reason.trim() : null,
+      created_by: userId
+    });
+    if (error) return { error: "Não foi possível interditar a sala: " + error.message };
+
+    var { data: conflicting } = await sb.from("bookings")
+      .select("id, date, start_time, end_time, rooms(name), profiles(name, email)")
+      .eq("room_id", roomId).eq("status", "CONFIRMADA")
+      .gte("date", startDate).lte("date", endDate);
+
+    return { ok: true, conflicting: conflicting || [] };
+  }
+
+  async function removeRoomBlock(id) {
+    await sb.from("room_blocks").delete().eq("id", id);
+    await loadAdmin();
+  }
+
+  // ---------- Relatório semanal em Excel (Painel Admin) ----------
+  // Gera um .xlsx formatado (cabeçalho nas cores do Bradesco, colunas, bordas, filtro)
+  // com as reservas confirmadas de segunda a sexta da semana escolhida no filtro do painel.
+  // Usa a biblioteca ExcelJS (carregada via CDN) inteiramente no navegador — nada passa por servidor.
+  async function downloadWeeklyExcelReport(weekMondayISO) {
+    if (!window.ExcelJS) {
+      throw new Error("Biblioteca de Excel não carregou. Verifique sua conexão com a internet e tente novamente.");
+    }
+
+    var weekMonday = weekMondayISO || getMondayISO(todayISO());
+    var weekFriday = addDaysISO(weekMonday, 4);
+    var allBookings = state.adminData || [];
+    var weekBookings = allBookings.filter(function (b) { return b.date >= weekMonday && b.date <= weekFriday; });
+    var sorted = weekBookings.slice().sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return a.start_time < b.start_time ? -1 : 1;
+    });
+
+    var RED = "FFCC092F", WHITE = "FFFFFFFF", GRAY_TEXT = "FF444444", MUTED = "FF888888", STRIPE = "FFF7F7F8", BORDER = "FFE5E5E5";
+    var THIN_BORDER = { style: "thin" };
+    var THIN_BORDER_LIGHT = { style: "thin", color: { argb: BORDER } };
+
+    var wb = new window.ExcelJS.Workbook();
+    wb.creator = "Academia de Investimento Bradesco — Sistema de Reserva de Salas";
+    wb.created = new Date();
+    var ws = wb.addWorksheet("Relatório Semanal", { views: [{ state: "frozen", ySplit: 5 }] });
+    ws.columns = [{ width: 24 }, { width: 24 }, { width: 14 }, { width: 32 }, { width: 32 }, { width: 20 }];
+
+    ws.mergeCells("A1:F1");
+    var titleCell = ws.getCell("A1");
+    titleCell.value = "Academia de Investimento — Relatório Semanal de Reservas de Salas";
+    titleCell.font = { bold: true, size: 14, color: { argb: WHITE } };
+    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: RED } };
+    titleCell.alignment = { vertical: "middle" };
+    ws.getRow(1).height = 26;
+
+    ws.mergeCells("A2:F2");
+    var subtitleCell = ws.getCell("A2");
+    subtitleCell.value = "Semana de " + formatDateBR(weekMonday) + " a " + formatDateBR(weekFriday);
+    subtitleCell.font = { bold: true, size: 11, color: { argb: GRAY_TEXT } };
+
+    ws.mergeCells("A3:F3");
+    var now = new Date();
+    var genCell = ws.getCell("A3");
+    genCell.value = "Gerado em " + now.toLocaleDateString("pt-BR") + " às " + now.toLocaleTimeString("pt-BR").slice(0, 5);
+    genCell.font = { italic: true, size: 9, color: { argb: MUTED } };
+
+    var headers = ["Dia", "Sala", "Horário", "Reservado por", "Usado por", "Nº de participantes"];
+    var headerRow = ws.getRow(5);
+    headers.forEach(function (h, i) {
+      var cell = headerRow.getCell(i + 1);
+      cell.value = h;
+      cell.font = { bold: true, color: { argb: WHITE } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: RED } };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.border = { top: THIN_BORDER, bottom: THIN_BORDER, left: THIN_BORDER, right: THIN_BORDER };
+    });
+    headerRow.commit();
+    ws.autoFilter = { from: "A5", to: "F5" };
+
+    var totalParticipantes = 0, comParticipantesInformados = 0;
+    sorted.forEach(function (b, idx) {
+      var row = ws.getRow(6 + idx);
+      var reservadoPor = (b.profiles ? b.profiles.name : "?") + (b.profiles && b.profiles.email ? " (" + b.profiles.email + ")" : "");
+      var usadoPor = b.guest_name
+        ? b.guest_name + (b.guest_email ? " (" + b.guest_email + ")" : "")
+        : reservadoPor + " — uso próprio";
+      var participantes = (b.participants_count === null || b.participants_count === undefined) ? "Não informado" : Number(b.participants_count);
+      if (typeof participantes === "number") { totalParticipantes += participantes; comParticipantesInformados++; }
+
+      row.getCell(1).value = weekdayName(b.date) + " " + formatDateBR(b.date);
+      row.getCell(2).value = b.rooms ? b.rooms.name : "?";
+      row.getCell(3).value = b.start_time + " – " + b.end_time;
+      row.getCell(4).value = reservadoPor;
+      row.getCell(5).value = usadoPor;
+      row.getCell(6).value = participantes;
+
+      for (var c = 1; c <= 6; c++) {
+        var cell = row.getCell(c);
+        cell.border = { top: THIN_BORDER_LIGHT, bottom: THIN_BORDER_LIGHT, left: THIN_BORDER_LIGHT, right: THIN_BORDER_LIGHT };
+        if (idx % 2 === 1) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: STRIPE } };
+      }
+      row.commit();
+    });
+
+    if (sorted.length === 0) {
+      ws.mergeCells("A6:F6");
+      var emptyCell = ws.getCell("A6");
+      emptyCell.value = "Nenhuma reserva confirmada nesta semana.";
+      emptyCell.font = { italic: true, color: { argb: MUTED } };
+    } else {
+      var summaryRowIdx = 6 + sorted.length + 1;
+      ws.mergeCells("A" + summaryRowIdx + ":C" + summaryRowIdx);
+      ws.getCell("A" + summaryRowIdx).value = "Total de reservas na semana: " + sorted.length;
+      ws.getCell("A" + summaryRowIdx).font = { bold: true };
+      ws.mergeCells("D" + summaryRowIdx + ":F" + summaryRowIdx);
+      ws.getCell("D" + summaryRowIdx).value = "Total de participantes informados: " + totalParticipantes + " (em " + comParticipantesInformados + " de " + sorted.length + " reservas)";
+      ws.getCell("D" + summaryRowIdx).font = { bold: true };
+    }
+
+    var buffer = await wb.xlsx.writeBuffer();
+    var blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "relatorio-semanal-salas-" + weekMonday + "-a-" + weekFriday + ".xlsx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  }
+
+  // ---------- Render: autenticação ----------
+  function renderAuth() {
+    if (state.screen === "register") {
+      app.innerHTML =
+        '<div class="center-page"><div class="auth-card">' +
+        '<div class="logo"><span class="mark">B</span><h2>Criar conta</h2><p class="sub">Somente emails @' + ALLOWED_DOMAIN + ' podem se cadastrar</p></div>' +
+        (state.formError ? '<div class="error-box">' + state.formError + "</div>" : "") +
+        (state.formSuccess ? '<div class="success-box">' + state.formSuccess + "</div>" : "") +
+        '<form id="form-register">' +
+        "<label>Nome completo</label><input name=\"name\" required />" +
+        '<label>Email corporativo</label><input name="email" type="email" placeholder="nome.sobrenome@bradesco.com.br" required />' +
+        '<label>Senha (mín. 8 caracteres)</label><input name="password" type="password" minlength="8" required />' +
+        "<label>Confirmar senha</label><input name=\"confirmPassword\" type=\"password\" required />" +
+        '<button class="btn-primary" type="submit">Cadastrar</button>' +
+        "</form>" +
+        '<p class="small-muted" style="text-align:center;margin-top:14px;">Já tem conta? <a class="link" id="go-login">Entrar</a></p>' +
+        "</div></div>";
+
+      document.getElementById("form-register").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        var f = e.target;
+        var btn = f.querySelector("button");
+        btn.disabled = true; btn.textContent = "Cadastrando...";
+        var err = await doRegister(f.name.value, f.email.value, f.password.value, f.confirmPassword.value);
+        if (err) { state.formError = err; render(); return; }
+        state.formError = null;
+        state.formSuccess = "Cadastro realizado! Você já pode fazer login com o email e a senha cadastrados.";
+        render();
+      });
+      document.getElementById("go-login").addEventListener("click", function () { go("login"); });
+      return;
+    }
+
+    app.innerHTML =
+      '<div class="center-page"><div class="auth-card">' +
+      '<div class="logo"><span class="mark">B</span><h2>Academia de Investimento</h2><p class="sub">Reserva de Salas · Acesso restrito Bradesco</p></div>' +
+      (state.formError ? '<div class="error-box">' + state.formError + "</div>" : "") +
+      '<form id="form-login">' +
+      '<label>Email corporativo</label><input name="email" type="email" placeholder="nome.sobrenome@bradesco.com.br" required />' +
+      '<label>Senha</label><input name="password" type="password" required />' +
+      '<button class="btn-primary" type="submit">Entrar</button>' +
+      "</form>" +
+      '<p class="small-muted" style="text-align:center;margin-top:14px;">Ainda não tem conta? <a class="link" id="go-register">Cadastre-se</a></p>' +
+      "</div></div>";
+
+    document.getElementById("form-login").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var f = e.target;
+      var btn = f.querySelector("button");
+      btn.disabled = true; btn.textContent = "Entrando...";
+      var err = await doLogin(f.email.value, f.password.value);
+      btn.disabled = false; btn.textContent = "Entrar";
+      if (err) { state.formError = err; render(); return; }
+      go("calendario");
+    });
+    document.getElementById("go-register").addEventListener("click", function () { go("register"); });
+  }
+
+  // ---------- Render: app logado ----------
+  function navbarHtml() {
+    var p = state.profile;
+    function tab(targetScreen, label, isActive) {
+      return '<button data-tab="' + targetScreen + '" class="' + (isActive ? "active" : "") + '">' + label + "</button>";
+    }
+    var salasFlowActive = (state.screen === "calendario" || state.screen === "salas" || state.screen === "sala-detalhe");
+    return (
+      '<header class="appbar"><div class="brand"><span class="mark">B</span>' +
+      '<div class="titles"><p class="t1">Academia de Investimento</p><p class="t2">Reserva de Salas · Bradesco</p></div></div>' +
+      '<nav class="tabs">' +
+      tab("calendario", "Salas", salasFlowActive) +
+      tab("minhas-reservas", "Minhas Reservas", state.screen === "minhas-reservas") +
+      (p && p.role === "SUPER_ADMIN" ? tab("admin", "Painel Admin", state.screen === "admin") : "") +
+      '<span class="email">' + (p ? p.email : "") + "</span>" +
+      '<button id="btn-logout">Sair</button>' +
+      "</nav></header>"
+    );
+  }
+
+  function attachNavbarEvents() {
+    document.querySelectorAll("[data-tab]").forEach(function (btn) {
+      btn.addEventListener("click", function () { go(btn.getAttribute("data-tab")); });
+    });
+    document.getElementById("btn-logout").addEventListener("click", doLogout);
+  }
+
+  function renderApp() {
+    if (state.screen === "sala-detalhe") return renderSalaDetalhe();
+    if (state.screen === "minhas-reservas") return renderMinhasReservas();
+    if (state.screen === "admin") return renderAdmin();
+    if (state.screen === "calendario") return renderCalendario();
+    return renderSalas();
+  }
+
+  function renderSalas() {
+    var isAdmin = isAdminUser();
+    var viewDate = state.roomsDate || todayISO();
+    var isToday = viewDate === todayISO();
+    var cards = (state.rooms || []).map(function (r) {
+      var status = r.status || { free: true, label: "…" };
+      var extraClass = isDarkRedRoom(r.name) ? " dark-red" : "";
+      var extraBadges = "";
+      if (ADMIN_ONLY_ROOM_IDS.indexOf(r.id) !== -1 && !isAdmin) {
+        extraBadges += '<span class="badge admin">Somente admin</span> ';
+      }
+      if (r.id === OVERFLOW_ROOM_ID && !isAdmin) {
+        extraBadges += '<span class="badge reserve">Sala reserva</span>';
+      }
+      if (r.id === SUB_OVERFLOW_ROOM_ID && !isAdmin) {
+        extraBadges += '<span class="badge subreserve">Sub reserva</span>';
+      }
+      var whoHtml = (status.who && status.who.length)
+        ? '<p class="who-line">' + status.who.map(escapeHtml).join("<br>") + "</p>"
+        : "";
+      return (
+        '<div class="card room-card' + extraClass + '" data-room="' + r.id + '">' +
+        '<div class="top"><h3 style="margin:0;font-size:15px;">' + r.name + "</h3>" +
+        '<span class="badge ' + (status.blocked ? "blocked" : (status.free ? "free" : "busy")) + '">' + status.label + "</span></div>" +
+        whoHtml +
+        '<p class="cat">' + r.category + (r.capacity ? " · capacidade máx. " + r.capacity + " pessoas" : "") + "</p>" +
+        (extraBadges ? '<p style="margin:0 0 8px;">' + extraBadges + "</p>" : "") +
+        '<p class="cta">Ver horários e reservar →</p>' +
+        "</div>"
+      );
+    }).join("");
+
+    var dataLabel = isToday ? "hoje (" + viewDate + ")" : weekdayName(viewDate) + ", " + viewDate;
+
+    app.innerHTML =
+      navbarHtml() +
+      '<main>' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">' +
+      '<div><h1 style="margin-bottom:2px;">Salas disponíveis</h1>' +
+      '<p class="subtitle" style="margin-bottom:0;">Status de ' + dataLabel + ". Clique em uma sala para ver a grade completa de horários.</p></div>" +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+      (isToday ? "" : '<button class="btn-secondary" id="btn-hoje">Ver hoje</button>') +
+      '<button class="btn-secondary" id="btn-calendario">📅 Reservar sala por calendário</button>' +
+      "</div></div>" +
+      '<div class="grid cols-3" style="margin-top:18px;">' + (cards || '<p class="small-muted">Carregando…</p>') + "</div></main>";
+
+    attachNavbarEvents();
+    document.getElementById("btn-calendario").addEventListener("click", function () { go("calendario"); });
+    var btnHoje = document.getElementById("btn-hoje");
+    if (btnHoje) btnHoje.addEventListener("click", function () { go("salas", { roomsDate: todayISO() }); });
+    document.querySelectorAll("[data-room]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        go("sala-detalhe", { selectedRoomId: el.getAttribute("data-room"), selectedDate: viewDate });
+      });
+    });
+  }
+
+  function renderCalendario() {
+    var base = state.calendarMonth || (state.roomsDate || todayISO()).slice(0, 7);
+    state.calendarMonth = base;
+    var parts = base.split("-").map(Number);
+    var year = parts[0], month = parts[1] - 1;
+    var firstWeekday = new Date(year, month, 1).getDay(); // 0 = domingo
+    var totalDays = daysInMonth(year, month);
+    var today = todayISO();
+
+    var cells = [];
+    for (var i = 0; i < firstWeekday; i++) cells.push("");
+    for (var d = 1; d <= totalDays; d++) cells.push(isoFromParts(year, month, d));
+
+    var weekHeaders = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    var headerHtml = weekHeaders.map(function (w) {
+      return '<div style="text-align:center;font-size:11px;color:#888;font-weight:600;padding:4px 0;">' + w + "</div>";
+    }).join("");
+
+    var cellsHtml = cells.map(function (iso) {
+      if (!iso) return "<div></div>";
+      var isPast = iso < today;
+      var isSelected = iso === state.roomsDate;
+      var isTodayCell = iso === today;
+      var dayNum = Number(iso.split("-")[2]);
+      var style = "text-align:center;padding:9px 0;border-radius:6px;font-size:13px;";
+      if (isPast) {
+        style += "color:#ccc;cursor:not-allowed;";
+      } else {
+        style += "cursor:pointer;";
+        if (isSelected) style += "background:var(--bradesco-red);color:#fff;font-weight:700;";
+        else if (isTodayCell) style += "border:1px solid var(--bradesco-red);color:var(--bradesco-red);font-weight:700;";
+      }
+      return '<div class="cal-day" data-day="' + iso + '" data-disabled="' + isPast + '" style="' + style + '">' + dayNum + "</div>";
+    }).join("");
+
+    app.innerHTML =
+      navbarHtml() +
+      '<main>' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">' +
+      '<div><h1 style="margin-bottom:2px;">Reservar sala</h1>' +
+      '<p class="subtitle" style="margin-bottom:0;">Escolha o dia desejado para ver a disponibilidade das salas já preenchida para essa data.</p></div>' +
+      '<button class="btn-secondary" id="btn-hoje-calendario">Ver salas de hoje</button>' +
+      "</div>" +
+      '<div class="card" style="max-width:380px;margin-top:18px;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">' +
+      '<button class="btn-secondary" id="cal-prev">←</button>' +
+      '<strong style="text-transform:capitalize;">' + monthLabel(base) + "</strong>" +
+      '<button class="btn-secondary" id="cal-next">→</button>' +
+      "</div>" +
+      '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">' + headerHtml + cellsHtml + "</div>" +
+      '<p class="small-muted" style="margin-top:12px;margin-bottom:0;">Dias no passado não podem ser escolhidos.</p>' +
+      "</div></main>";
+
+    attachNavbarEvents();
+    document.getElementById("btn-hoje-calendario").addEventListener("click", function () { go("salas", { roomsDate: todayISO() }); });
+    document.getElementById("cal-prev").addEventListener("click", function () { state.calendarMonth = addMonths(base, -1); render(); });
+    document.getElementById("cal-next").addEventListener("click", function () { state.calendarMonth = addMonths(base, 1); render(); });
+    document.querySelectorAll(".cal-day").forEach(function (el) {
+      if (el.getAttribute("data-disabled") === "true") return;
+      el.addEventListener("click", function () {
+        go("salas", { roomsDate: el.getAttribute("data-day") });
+      });
+    });
+  }
+
+  function renderSalaDetalhe() {
+    var room = (state.rooms || []).find(function (r) { return r.id === state.selectedRoomId; }) || { name: "" };
+    var date = state.selectedDate;
+    var bookings = state.roomBookings || [];
+    var freeSlots = computeFreeSlots(bookings);
+    var isAdmin = isAdminUser();
+
+    var busyHtml = bookings.length === 0
+      ? '<p class="small-muted">Nenhuma reserva neste dia.</p>'
+      : '<ul class="plain">' + bookings.map(function (b) {
+          var nome = b.profiles ? b.profiles.name : "";
+          var quemUsa = b.guest_name ? nome + " (para: " + b.guest_name + ")" : nome;
+          if (b.participants_count) quemUsa += " · " + b.participants_count + (b.participants_count === 1 ? " pessoa" : " pessoas");
+          return '<li class="slot-busy"><span>' + b.start_time + " – " + b.end_time + '</span><span>' + quemUsa + "</span></li>";
+        }).join("") + "</ul>";
+
+    var freeHtml = freeSlots.length === 0
+      ? '<p class="small-muted">Sem horários livres neste dia.</p>'
+      : freeSlots.map(function (s) { return '<span class="slot-free">' + s.start + " – " + s.end + "</span>"; }).join("");
+
+    var block = state.roomBlock || null;
+    var restrictionHtml = "";
+    if (block) {
+      // Interdição vale pra todo mundo, inclusive Super Admin — por isso usa error-box (mais
+      // forte que o amber-box das outras regras) e não entra nenhuma exceção pra admin aqui.
+      restrictionHtml += '<div class="error-box"><strong>Sala interditada.</strong> ' + blockLabel(block) + ". Não é possível reservar nesse período, nem para administradores.</div>";
+    }
+    if (ADMIN_ONLY_ROOM_IDS.indexOf(room.id) !== -1 && !isAdmin) {
+      restrictionHtml += '<div class="amber-box">Esta sala é restrita a administradores. Você pode consultar os horários, mas não pode reservá-la.</div>';
+    }
+    if (room.id === OVERFLOW_ROOM_ID && !isAdmin) {
+      restrictionHtml += '<div class="amber-box">Sala reserva: só fica disponível para reserva quando as salas 2, 3, 5 e 6 estiverem todas ocupadas no horário escolhido.</div>';
+    }
+    if (room.id === SUB_OVERFLOW_ROOM_ID && !isAdmin) {
+      restrictionHtml += '<div class="amber-box">Sub reserva: só fica disponível para reserva quando a Sala 1 e as salas 2, 3, 5 e 6 estiverem todas ocupadas no horário escolhido.</div>';
+    }
+
+    var conflictHtml = "";
+    if (state.conflictInfo) {
+      var ci = state.conflictInfo;
+      conflictHtml = '<div class="amber-box"><strong>' + ci.error + "</strong>";
+      if (ci.freeSlotsToday && ci.freeSlotsToday.length) {
+        conflictHtml += '<p style="margin:8px 0 4px;">Horários livres hoje nesta sala:</p><div>' +
+          ci.freeSlotsToday.map(function (s) { return '<span class="slot-free">' + s.start + " – " + s.end + "</span>"; }).join("") + "</div>";
+      }
+      if (ci.alternativeDays && ci.alternativeDays.length) {
+        conflictHtml += '<p style="margin:8px 0 4px;">Outros dias com horário livre semelhante:</p><ul class="plain">' +
+          ci.alternativeDays.map(function (d) {
+            return "<li><strong>" + d.date + ":</strong> " + d.freeSlots.map(function (s) { return s.start + "–" + s.end; }).join(", ") + "</li>";
+          }).join("") + "</ul>";
+      }
+      conflictHtml += "</div>";
+    }
+
+    app.innerHTML =
+      navbarHtml() +
+      '<main><button class="btn-secondary" id="back-salas" style="margin-bottom:14px;">← Voltar</button>' +
+      "<h1>" + room.name + "</h1>" +
+      '<p class="subtitle">Consulte os horários e faça sua reserva.' +
+      (room.capacity ? " Capacidade máxima: " + room.capacity + " pessoas." : "") +
+      "</p>" +
+      '<div class="card" style="max-width:260px;margin-bottom:20px;">' +
+      '<label>Data</label><input type="date" id="input-date" value="' + date + '" min="' + todayISO() + '" />' +
+      "</div>" +
+      restrictionHtml +
+      (state.formSuccess ? '<div class="success-box">' + state.formSuccess + "</div>" : "") +
+      '<div class="grid cols-2">' +
+      '<div class="card"><h4 style="margin-top:0;">Horários ocupados</h4>' + busyHtml +
+      '<h4>Horários livres</h4>' + freeHtml + "</div>" +
+      '<div class="card"><h4 style="margin-top:0;">Nova reserva — ' + date + "</h4>" +
+      conflictHtml +
+      '<form id="form-booking">' +
+      '<div class="grid cols-2">' +
+      '<div><label>Início</label><input type="time" name="startTime" value="08:00" min="' + OPENING_TIME + '" max="' + CLOSING_TIME + '" required /></div>' +
+      '<div><label>Término</label><input type="time" name="endTime" value="09:00" min="' + OPENING_TIME + '" max="' + CLOSING_TIME + '" required /></div>' +
+      "</div>" +
+      '<p class="small-muted">Expediente das salas: ' + OPENING_TIME + " às " + CLOSING_TIME + ".</p>" +
+      '<label>Reservando para outra pessoa? Nome (opcional)</label><input name="guestName" placeholder="Nome de quem vai usar a sala" />' +
+      '<label>Email de quem vai usar (opcional)</label><input name="guestEmail" type="email" placeholder="email@bradesco.com.br" />' +
+      '<label>Número de participantes (opcional' + (room.capacity ? ", máx. " + room.capacity : "") + ')</label>' +
+      '<input name="participantsCount" type="number" min="1" step="1"' + (room.capacity ? ' max="' + room.capacity + '"' : "") + ' placeholder="Ex.: 8" />' +
+      '<button class="btn-primary" type="submit"' + ((block || (ADMIN_ONLY_ROOM_IDS.indexOf(room.id) !== -1 && !isAdmin)) ? " disabled" : "") + '>Reservar sala</button>' +
+      "</form></div></div></main>";
+
+    attachNavbarEvents();
+    document.getElementById("back-salas").addEventListener("click", function () { go("salas"); });
+    document.getElementById("input-date").addEventListener("change", function (e) {
+      go("sala-detalhe", { selectedRoomId: room.id, selectedDate: e.target.value });
+    });
+    document.getElementById("form-booking").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var f = e.target;
+      var btn = f.querySelector("button");
+      btn.disabled = true; btn.textContent = "Reservando...";
+      var result = await tryCreateBooking(room.id, room.name, date, f.startTime.value, f.endTime.value, f.guestName.value, f.guestEmail.value, f.participantsCount.value, room.capacity);
+      if (result.error) {
+        state.conflictInfo = result;
+        state.formSuccess = null;
+        await loadRoomDetalhe();
+        return;
+      }
+      state.conflictInfo = null;
+      state.formSuccess = "Reserva confirmada com sucesso!";
+      await loadRoomDetalhe();
+    });
+  }
+
+  function renderMinhasReservas() {
+    var mine = state.myBookings || [];
+    var rows = mine.length === 0
+      ? '<p class="small-muted">Você ainda não tem reservas ativas.</p>'
+      : mine.map(function (b) {
+          var salaNome = b.rooms ? b.rooms.name : "";
+          var paraQuem = b.guest_name
+            ? '<br/><span class="small-muted">Reservada para: ' + b.guest_name + (b.guest_email ? " (" + b.guest_email + ")" : "") + "</span>"
+            : "";
+          return (
+            '<div class="reserva-row"><div><strong>' + salaNome + "</strong><br/>" +
+            '<span class="small-muted">' + b.date + " · " + b.start_time + " – " + b.end_time + "</span>" + paraQuem + "</div>" +
+            '<button class="btn-secondary" data-cancel="' + b.id + '">Cancelar</button></div>'
+          );
+        }).join("");
+
+    app.innerHTML = navbarHtml() + '<main><h1>Minhas Reservas</h1><div class="card">' + rows + "</div></main>";
+    attachNavbarEvents();
+    document.querySelectorAll("[data-cancel]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        if (!confirm("Cancelar esta reserva?")) return;
+        await cancelBooking(btn.getAttribute("data-cancel"));
+      });
+    });
+  }
+
+  function renderAdmin() {
+    var bookings = state.adminData || [];
+    var porSala = {}, porDia = {}, porUsuario = {}, porPeriodo = { "Manhã": 0, "Tarde": 0 }, minutosTotais = 0;
+    var weekTotals = {};
+
+    bookings.forEach(function (b) {
+      var salaNome = b.rooms ? b.rooms.name : "?";
+      var email = b.profiles ? b.profiles.email : "?";
+      porSala[salaNome] = (porSala[salaNome] || 0) + 1;
+      porDia[b.date] = (porDia[b.date] || 0) + 1;
+      porUsuario[email] = (porUsuario[email] || 0) + 1;
+      porPeriodo[classifyPeriod(b.start_time)]++;
+      minutosTotais += timeToMinutes(b.end_time) - timeToMinutes(b.start_time);
+      var monday = getMondayISO(b.date);
+      weekTotals[monday] = (weekTotals[monday] || 0) + 1;
+    });
+
+    var porSalaArr = Object.keys(porSala).map(function (k) { return { sala: k, total: porSala[k] }; }).sort(function (a, b) { return b.total - a.total; });
+    var porDiaArr = Object.keys(porDia).map(function (k) { return { dia: k, total: porDia[k] }; }).sort(function (a, b) { return a.dia < b.dia ? -1 : 1; });
+    var topUsuarios = Object.keys(porUsuario).map(function (k) { return { email: k, total: porUsuario[k] }; }).sort(function (a, b) { return b.total - a.total; }).slice(0, 10);
+    var maxPorSala = Math.max.apply(null, porSalaArr.map(function (s) { return s.total; }).concat([1]));
+    var recentes = bookings.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 15);
+
+    var weekList = Object.keys(weekTotals).sort();
+    var busiestWeek = null, quietestWeek = null;
+    weekList.forEach(function (w) {
+      if (!busiestWeek || weekTotals[w] > weekTotals[busiestWeek]) busiestWeek = w;
+      if (!quietestWeek || weekTotals[w] < weekTotals[quietestWeek]) quietestWeek = w;
+    });
+
+    // Reservas de um dia específico (filtro) e comparativo entre dois dias escolhidos livremente.
+    function bookingsOnDate(iso) {
+      return bookings.filter(function (b) { return b.date === iso; })
+        .sort(function (a, b) { return a.start_time < b.start_time ? -1 : 1; });
+    }
+
+    var selectedDay = state.adminSelectedDay || todayISO();
+    var dayBookings = bookingsOnDate(selectedDay);
+    var dayBookingsHtml = dayBookings.length === 0
+      ? '<p class="small-muted">Nenhuma reserva confirmada neste dia.</p>'
+      : '<table><thead><tr><th>Sala</th><th>Reservado por</th><th>Horário</th><th>Para outra pessoa</th><th>Participantes</th></tr></thead><tbody>' +
+        dayBookings.map(function (r) {
+          var salaNome = r.rooms ? r.rooms.name : "?";
+          var nome = r.profiles ? r.profiles.name : "?";
+          var email = r.profiles ? r.profiles.email : "?";
+          var paraQuem = r.guest_name ? r.guest_name + (r.guest_email ? " (" + r.guest_email + ")" : "") : "—";
+          var participantes = r.participants_count ? r.participants_count : "—";
+          return "<tr><td>" + salaNome + "</td><td>" + nome + ' <span class="small-muted">(' + email + ")</span></td><td>" + r.start_time + " – " + r.end_time + "</td><td>" + paraQuem + "</td><td>" + participantes + "</td></tr>";
+        }).join("") + "</tbody></table>";
+
+    var compareDayA = state.adminCompareDayA || addDaysISO(todayISO(), -1);
+    var compareDayB = state.adminCompareDayB || todayISO();
+    var totalCompareA = bookingsOnDate(compareDayA).length;
+    var totalCompareB = bookingsOnDate(compareDayB).length;
+    var maxCompareDay = Math.max(totalCompareA, totalCompareB, 1);
+    var compareDayWinner = totalCompareA === totalCompareB
+      ? "Os dois dias tiveram o mesmo número de reservas."
+      : (totalCompareA > totalCompareB
+          ? weekdayName(compareDayA) + " (" + formatDateBR(compareDayA) + ") teve mais reservas que " + weekdayName(compareDayB) + " (" + formatDateBR(compareDayB) + ")."
+          : weekdayName(compareDayB) + " (" + formatDateBR(compareDayB) + ") teve mais reservas que " + weekdayName(compareDayA) + " (" + formatDateBR(compareDayA) + ").");
+
+    var selectedWeek = state.adminSelectedWeek || "";
+    var diasParaExibir;
+    if (selectedWeek) {
+      diasParaExibir = [0, 1, 2, 3, 4].map(function (offset) {
+        var dayIso = addDaysISO(selectedWeek, offset);
+        return { dia: dayIso, total: porDia[dayIso] || 0 };
+      });
+    } else {
+      diasParaExibir = porDiaArr;
+    }
+    var maiorDemandaDia = diasParaExibir.length ? diasParaExibir.reduce(function (a, b) { return b.total > a.total ? b : a; }) : null;
+    var menorDemandaDia = diasParaExibir.length ? diasParaExibir.reduce(function (a, b) { return b.total < a.total ? b : a; }) : null;
+
+    var salaBarsHtml = porSalaArr.length === 0
+      ? '<p class="small-muted">Nenhuma reserva ainda.</p>'
+      : porSalaArr.map(function (s) {
+          return (
+            '<div class="bar-row"><div class="bar-labels"><span>' + s.sala + "</span><span>" + s.total + "</span></div>" +
+            '<div class="bar-bg"><div class="bar-fill" style="width:' + ((s.total / maxPorSala) * 100) + '%"></div></div></div>'
+          );
+        }).join("");
+
+    var porDiaHtml = diasParaExibir.length === 0
+      ? '<p class="small-muted">Sem dados ainda.</p>'
+      : '<label for="dia-demanda-select" style="margin-top:10px;">Ver um dia da lista</label>' +
+        '<select id="dia-demanda-select">' +
+        diasParaExibir.map(function (d) {
+          var label = weekdayName(d.dia) + " (" + formatDateBR(d.dia) + ") — " + d.total + (d.total === 1 ? " reserva" : " reservas");
+          return '<option value="' + d.dia + '"' + (d.dia === selectedDay ? " selected" : "") + ">" + label + "</option>";
+        }).join("") +
+        "</select>" +
+        '<p class="small-muted" style="margin-top:-6px;">A escolha aqui atualiza a seção "Reservas de um dia específico" abaixo.</p>';
+
+    var weekOptionsHtml = '<option value="">Todas as semanas</option>' +
+      weekList.slice().reverse().map(function (w) {
+        var label = formatDateBR(w) + " – " + formatDateBR(addDaysISO(w, 4)) + " (" + weekTotals[w] + " reservas)";
+        return '<option value="' + w + '"' + (w === selectedWeek ? " selected" : "") + ">" + label + "</option>";
+      }).join("");
+
+    var weekCompareHtml = (busiestWeek && quietestWeek && weekList.length > 1)
+      ? '<p class="small-muted">Semana mais movimentada: <strong>' + formatDateBR(busiestWeek) + "–" + formatDateBR(addDaysISO(busiestWeek, 4)) + "</strong> (" + weekTotals[busiestWeek] + " reservas)</p>" +
+        '<p class="small-muted">Semana menos movimentada: <strong>' + formatDateBR(quietestWeek) + "–" + formatDateBR(addDaysISO(quietestWeek, 4)) + "</strong> (" + weekTotals[quietestWeek] + " reservas)</p>"
+      : '<p class="small-muted">Dados insuficientes — precisa de reservas em pelo menos 2 semanas diferentes.</p>';
+
+    var totalPeriodos = porPeriodo["Manhã"] + porPeriodo["Tarde"];
+    var pctManha = totalPeriodos ? Math.round((porPeriodo["Manhã"] / totalPeriodos) * 100) : 0;
+    var pctTarde = totalPeriodos ? 100 - pctManha : 0;
+    var periodoTopo = totalPeriodos === 0 ? "—" : (porPeriodo["Manhã"] >= porPeriodo["Tarde"] ? "Manhã" : "Tarde");
+
+    var topUsuariosHtml = topUsuarios.length === 0
+      ? '<p class="small-muted">Sem dados ainda.</p>'
+      : '<ul class="plain">' + topUsuarios.map(function (u) {
+          return '<li style="display:flex;justify-content:space-between;border-bottom:1px solid #eee;padding:5px 0;"><span>' + u.email + "</span><strong>" + u.total + "</strong></li>";
+        }).join("") + "</ul>";
+
+    var recentesHtml = recentes.length === 0
+      ? '<p class="small-muted">Sem reservas ainda.</p>'
+      : '<table><thead><tr><th>Sala</th><th>Usuário</th><th>Data</th><th>Horário</th><th>Participantes</th><th></th></tr></thead><tbody>' +
+        recentes.map(function (r) {
+          var salaNome = r.rooms ? r.rooms.name : "?";
+          var nome = r.profiles ? r.profiles.name : "?";
+          var email = r.profiles ? r.profiles.email : "?";
+          var participantes = r.participants_count ? r.participants_count : "—";
+          return "<tr><td>" + salaNome + "</td><td>" + nome + ' <span class="small-muted">(' + email + ")</span></td><td>" + r.date + "</td><td>" + r.start_time + " – " + r.end_time +
+            "</td><td>" + participantes + '</td><td><button class="btn-secondary" data-admin-cancel="' + r.id + '">Cancelar</button></td></tr>';
+        }).join("") + "</tbody></table>";
+
+    // Reservas feitas por alguém em nome de outra pessoa (campo opcional preenchido)
+    var paraOutros = bookings.filter(function (b) { return !!b.guest_name; })
+      .sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; });
+
+    var paraOutrosHtml = paraOutros.length === 0
+      ? '<p class="small-muted">Nenhuma reserva foi feita para outra pessoa até agora — todas as reservas atuais são para o próprio usuário que marcou.</p>'
+      : '<table><thead><tr><th>Sala</th><th>Reservado por</th><th>Reservado para</th><th>Data</th><th>Horário</th><th>Participantes</th><th></th></tr></thead><tbody>' +
+        paraOutros.map(function (r) {
+          var salaNome = r.rooms ? r.rooms.name : "?";
+          var nome = r.profiles ? r.profiles.name : "?";
+          var email = r.profiles ? r.profiles.email : "?";
+          var paraQuem = r.guest_name + (r.guest_email ? ' <span class="small-muted">(' + r.guest_email + ")</span>" : "");
+          var participantes = r.participants_count ? r.participants_count : "—";
+          return "<tr><td>" + salaNome + "</td><td>" + nome + ' <span class="small-muted">(' + email + ")</span></td><td>" + paraQuem + "</td><td>" + r.date + "</td><td>" + r.start_time + " – " + r.end_time +
+            "</td><td>" + participantes + '</td><td><button class="btn-secondary" data-admin-cancel="' + r.id + '">Cancelar</button></td></tr>';
+        }).join("") + "</tbody></table>";
+
+    // ---------- Interditar sala (bloquear de uma data até outra) ----------
+    var today = todayISO();
+    var roomOptionsHtml = (state.rooms || []).map(function (r) {
+      return '<option value="' + r.id + '">' + r.name + "</option>";
+    }).join("");
+
+    var allBlocks = state.roomBlocks || [];
+    var activeOrFutureBlocks = allBlocks.filter(function (b) { return b.end_date >= today; });
+    var pastBlocks = allBlocks.filter(function (b) { return b.end_date < today; });
+
+    function blocksTableHtml(list) {
+      if (list.length === 0) return '<p class="small-muted">Nenhuma interdição aqui.</p>';
+      return '<table><thead><tr><th>Sala</th><th>Período</th><th>Motivo</th><th></th></tr></thead><tbody>' +
+        list.map(function (b) {
+          var salaNome = b.rooms ? b.rooms.name : "?";
+          var periodo = b.start_date === b.end_date ? formatDateBR(b.start_date) : formatDateBR(b.start_date) + " até " + formatDateBR(b.end_date);
+          return "<tr><td>" + salaNome + "</td><td>" + periodo + "</td><td>" + (b.reason ? escapeHtml(b.reason) : '<span class="small-muted">—</span>') +
+            '</td><td><button class="btn-secondary" data-remove-block="' + b.id + '">Remover</button></td></tr>';
+        }).join("") + "</tbody></table>";
+    }
+
+    var interditarHtml =
+      '<div class="card" style="margin-bottom:20px;"><h4 style="margin-top:0;">Interditar sala</h4>' +
+      '<p class="small-muted">Bloqueia uma sala pra reserva entre duas datas (manutenção, reforma, evento, etc.). Vale pra todo mundo, inclusive Super Admin — ninguém consegue reservar nesse período.</p>' +
+      (state.formError ? '<div class="error-box">' + state.formError + "</div>" : "") +
+      (state.formSuccess ? '<div class="success-box">' + state.formSuccess + "</div>" : "") +
+      (state.formWarning ? '<div class="amber-box">' + state.formWarning + "</div>" : "") +
+      '<form id="form-interdicao">' +
+      '<div class="grid cols-3">' +
+      '<div><label>Sala</label><select name="roomId" required><option value="">Escolha…</option>' + roomOptionsHtml + "</select></div>" +
+      '<div><label>De</label><input type="date" name="startDate" min="' + today + '" value="' + today + '" required /></div>' +
+      '<div><label>Até</label><input type="date" name="endDate" min="' + today + '" value="' + today + '" required /></div>' +
+      "</div>" +
+      '<label>Motivo (opcional)</label><input name="reason" placeholder="Ex.: Manutenção do ar-condicionado" />' +
+      '<button class="btn-primary" type="submit">Interditar sala</button>' +
+      "</form>" +
+      '<h4 style="margin-bottom:6px;">Interdições ativas ou futuras</h4>' + blocksTableHtml(activeOrFutureBlocks) +
+      (pastBlocks.length > 0 ? '<h4 style="margin-bottom:6px;">Interdições já encerradas</h4>' + blocksTableHtml(pastBlocks) : "") +
+      "</div>";
+
+    app.innerHTML =
+      navbarHtml() +
+      '<main><h1>Painel do Super Admin</h1><p class="subtitle">Visão completa de todas as reservas do sistema.</p>' +
+      '<div class="grid cols-3" style="margin-bottom:20px;">' +
+      '<div class="card metric"><div class="val">' + bookings.length + '</div><div class="lbl">Total de reservas</div></div>' +
+      '<div class="card metric"><div class="val">' + (state.rooms ? state.rooms.length : 0) + '</div><div class="lbl">Salas cadastradas</div></div>' +
+      '<div class="card metric"><div class="val">' + Math.round((minutosTotais / 60) * 10) / 10 + 'h</div><div class="lbl">Horas reservadas</div></div>' +
+      "</div>" +
+      interditarHtml +
+      '<div class="grid cols-2" style="margin-bottom:20px;">' +
+      '<div class="card"><h4 style="margin-top:0;">Reservas por sala</h4>' + salaBarsHtml + "</div>" +
+      '<div class="card"><h4 style="margin-top:0;">Demanda por dia</h4>' +
+      '<div class="week-nav"><label for="week-filter">Semana:</label><select id="week-filter">' + weekOptionsHtml + "</select>" +
+      '<button class="btn-secondary" id="btn-export-excel" type="button">📊 Relatório semanal (Excel)</button>' +
+      "</div>" +
+      '<p class="small-muted" style="margin-top:-8px;">O relatório baixa a semana selecionada acima (ou a semana atual, se estiver em "Todas as semanas").</p>' +
+      '<p class="small-muted">Maior: ' + (maiorDemandaDia ? weekdayName(maiorDemandaDia.dia) + " " + formatDateBR(maiorDemandaDia.dia) + " (" + maiorDemandaDia.total + ")" : "—") +
+      " · Menor: " + (menorDemandaDia ? weekdayName(menorDemandaDia.dia) + " " + formatDateBR(menorDemandaDia.dia) + " (" + menorDemandaDia.total + ")" : "—") + "</p>" +
+      porDiaHtml + "</div></div>" +
+      '<div class="card" style="margin-bottom:20px;"><h4 style="margin-top:0;">Reservas de um dia específico</h4>' +
+      '<div style="max-width:220px;"><label for="day-filter">Escolha o dia</label><input type="date" id="day-filter" value="' + selectedDay + '" /></div>' +
+      '<p class="small-muted">' + weekdayName(selectedDay) + ", " + formatDateBR(selectedDay) + " — " + dayBookings.length + (dayBookings.length === 1 ? " reserva" : " reservas") + "</p>" +
+      dayBookingsHtml +
+      "</div>" +
+      '<div class="grid cols-2" style="margin-bottom:20px;">' +
+      '<div class="card"><h4 style="margin-top:0;">Demanda por período do dia</h4>' +
+      '<p class="small-muted">Manhã = 08:00–11:59 · Tarde = 12:00–18:00</p>' +
+      '<div class="bar-row"><div class="bar-labels"><span>Manhã</span><span>' + porPeriodo["Manhã"] + " (" + pctManha + '%)</span></div><div class="bar-bg"><div class="bar-fill" style="width:' + pctManha + '%"></div></div></div>' +
+      '<div class="bar-row"><div class="bar-labels"><span>Tarde</span><span>' + porPeriodo["Tarde"] + " (" + pctTarde + '%)</span></div><div class="bar-bg"><div class="bar-fill" style="width:' + pctTarde + '%"></div></div></div>' +
+      '<p class="small-muted">Período com mais reservas: <strong>' + periodoTopo + "</strong></p></div>" +
+      '<div class="card"><h4 style="margin-top:0;">Comparativo entre semanas</h4>' + weekCompareHtml + "</div>" +
+      "</div>" +
+      '<div class="card" style="margin-bottom:20px;"><h4 style="margin-top:0;">Comparativo entre dias</h4>' +
+      '<div class="grid cols-2">' +
+      '<div><label for="compare-day-a">Dia A</label><input type="date" id="compare-day-a" value="' + compareDayA + '" /></div>' +
+      '<div><label for="compare-day-b">Dia B</label><input type="date" id="compare-day-b" value="' + compareDayB + '" /></div>' +
+      "</div>" +
+      '<div class="bar-row"><div class="bar-labels"><span>' + weekdayName(compareDayA) + " " + formatDateBR(compareDayA) + '</span><span>' + totalCompareA + '</span></div><div class="bar-bg"><div class="bar-fill" style="width:' + ((totalCompareA / maxCompareDay) * 100) + '%"></div></div></div>' +
+      '<div class="bar-row"><div class="bar-labels"><span>' + weekdayName(compareDayB) + " " + formatDateBR(compareDayB) + '</span><span>' + totalCompareB + '</span></div><div class="bar-bg"><div class="bar-fill" style="width:' + ((totalCompareB / maxCompareDay) * 100) + '%"></div></div></div>' +
+      '<p class="small-muted">' + compareDayWinner + "</p>" +
+      "</div>" +
+      '<div class="card" style="margin-bottom:20px;"><h4 style="margin-top:0;">Usuários que mais reservam</h4>' + topUsuariosHtml + "</div>" +
+      '<div class="card" style="margin-bottom:20px;"><h4 style="margin-top:0;">Reservas feitas para outras pessoas</h4>' + paraOutrosHtml + "</div>" +
+      '<div class="card"><h4 style="margin-top:0;">Reservas recentes</h4>' + recentesHtml + "</div>" +
+      "</main>";
+
+    attachNavbarEvents();
+    var weekFilterEl = document.getElementById("week-filter");
+    if (weekFilterEl) {
+      weekFilterEl.addEventListener("change", function (e) {
+        state.adminSelectedWeek = e.target.value;
+        renderAdmin();
+      });
+    }
+    var dayFilterEl = document.getElementById("day-filter");
+    if (dayFilterEl) {
+      dayFilterEl.addEventListener("change", function (e) {
+        state.adminSelectedDay = e.target.value;
+        renderAdmin();
+      });
+    }
+    var diaDemandaSelectEl = document.getElementById("dia-demanda-select");
+    if (diaDemandaSelectEl) {
+      diaDemandaSelectEl.addEventListener("change", function (e) {
+        state.adminSelectedDay = e.target.value;
+        renderAdmin();
+      });
+    }
+    var exportExcelBtn = document.getElementById("btn-export-excel");
+    if (exportExcelBtn) {
+      exportExcelBtn.addEventListener("click", async function () {
+        var originalText = exportExcelBtn.textContent;
+        exportExcelBtn.disabled = true;
+        exportExcelBtn.textContent = "Gerando...";
+        try {
+          await downloadWeeklyExcelReport(state.adminSelectedWeek || null);
+        } catch (err) {
+          alert("Não foi possível gerar o relatório: " + err.message);
+        }
+        exportExcelBtn.disabled = false;
+        exportExcelBtn.textContent = originalText;
+      });
+    }
+    var compareDayAEl = document.getElementById("compare-day-a");
+    if (compareDayAEl) {
+      compareDayAEl.addEventListener("change", function (e) {
+        state.adminCompareDayA = e.target.value;
+        renderAdmin();
+      });
+    }
+    var compareDayBEl = document.getElementById("compare-day-b");
+    if (compareDayBEl) {
+      compareDayBEl.addEventListener("change", function (e) {
+        state.adminCompareDayB = e.target.value;
+        renderAdmin();
+      });
+    }
+    document.querySelectorAll("[data-admin-cancel]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        if (!confirm("Cancelar esta reserva?")) return;
+        await adminCancelBooking(btn.getAttribute("data-admin-cancel"));
+      });
+    });
+
+    var formInterdicaoEl = document.getElementById("form-interdicao");
+    if (formInterdicaoEl) {
+      formInterdicaoEl.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        var f = e.target;
+        var btn = f.querySelector("button");
+        btn.disabled = true; btn.textContent = "Interditando...";
+        var result = await createRoomBlock(f.roomId.value, f.startDate.value, f.endDate.value, f.reason.value);
+        if (result.error) {
+          state.formError = result.error;
+          state.formWarning = null;
+          btn.disabled = false; btn.textContent = "Interditar sala";
+          render();
+          return;
+        }
+        state.formError = null;
+        state.formSuccess = "Sala interditada com sucesso.";
+        state.formWarning = (result.conflicting && result.conflicting.length > 0)
+          ? "Atenção: já existem " + result.conflicting.length + (result.conflicting.length === 1 ? " reserva confirmada" : " reservas confirmadas") +
+            " nesse período para essa sala. O sistema não cancela essas reservas automaticamente — avise as pessoas ou cancele manualmente na lista de reservas recentes se necessário."
+          : null;
+        await loadAdmin();
+      });
+    }
+    document.querySelectorAll("[data-remove-block]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        if (!confirm("Remover esta interdição? A sala volta a ficar disponível nesse período.")) return;
+        await removeRoomBlock(btn.getAttribute("data-remove-block"));
+      });
+    });
+  }
+
+  // ---------- Início ----------
+  (async function init() {
+    var { data } = await sb.auth.getSession();
+    state.session = data.session;
+    if (state.session) await loadProfile();
+    state.loading = false;
+
+    sb.auth.onAuthStateChange(function (event, session) {
+      state.session = session;
+      if (session) { loadProfile().then(render); }
+      else { state.profile = null; render(); }
+    });
+
+    if (state.session) {
+      await go("calendario");
+    } else {
+      render();
+    }
+  })();
+})();
+</script>
+</body>
+</html>
